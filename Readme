@@ -1,0 +1,41 @@
+1. There are 3 files in the Notebook. You can start in that order.
+
+2. Start with Install conda if you dont have - I have used conda version conda 23.7.4 and python version 3.9.18.
+
+ To install a specific version of Conda, you typically start by installing the latest version of Miniconda or Anaconda, and then you can downgrade or update to the specific version of Conda that you need. 
+conda install conda=23.7.4
+
+ 3. Conda Environment with right python version. Then to use the same environemenst as i used to test the notebook files - either use the provided environment folders as in kpn_demo or create the same environment using requirements.txt that is provided. 
+
+conda create --name <env> --file requirements.txt . 
+
+Note : if above does not work, then use the folders that i provided.
+Activate using the provided library folders. This is enviroment libary filder name "kpn_demo" in Demonstartion.. 
+
+3a. conda env list
+
+3b.  activate path_to_the\kpn_demo
+example: activate C:\Users\mandart\A_MANDAR_DOCUMENTS\HAM_Multiphase_Drilling\Demonstration\kpn_demo
+example: activate C:\Users\mandart\A_MANDAR_DOCUMENTS\HAM_WIND_ENERGY\Demonstration\kpn_demo
+
+Then, install Jupyter in that environment (if not working)
+
+4. conda install jupyter
+
+5. Install the IPython Kernel
+Next, you need to install the IPython kernel for the environment. This will make the environment available as a kernel in Jupyter:
+    python -m ipykernel install --user --name your_environment_name --display-name "Your Environment Name"
+Replace your_environment_name with the name of your conda environment and "Your Environment Name" with the display name you want to see in the Jupyter notebook interface.
+
+5. Open jupyter notebook in VS code. 
+
+6. Select the Kernel in Jupyter Notebook
+Open the Jupyter Notebook file (.ipynb) you want to work with.
+Click on the "Kernel" menu at the top of the notebook interface.
+Select "Change kernel" from the dropdown menu.
+Choose "Your Environment Name" from the list of available kernels.
+
+7. Verify the Kernel
+To ensure that the notebook is using the correct environment, you can run a cell with the following command:
+!which python
+This should return the path to the Python executable within your conda environment.
