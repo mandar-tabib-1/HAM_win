@@ -71,7 +71,7 @@ def objective(trial,xtrain,ytrain):# For LSTM model
         os.makedirs("./"+filenamelstm)
     
     # Removing old models
-    model_name = filenamelstm + '/LSTM-Corrector.h5'
+    model_name = filenamelstm + '/ANN-Corrector.h5'
     if os.path.isfile(model_name):
         os.remove(model_name)
 
@@ -88,12 +88,12 @@ def objective(trial,xtrain,ytrain):# For LSTM model
     
     batch_size=10
         
-    model3 = create_model(trial,xtrain,ytrain)
+    model3 = create_model_ANN(trial,xtrain,ytrain)
     
     #Criteria for early stoping, model saving and reducing learning rate on the fly.
-    es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=5)
+    es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=15)
     mc = ModelCheckpoint('best_model.h5', monitor='val_loss', mode='min', verbose=1, save_best_only=True)
-    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2,patience=5, min_lr=0.001)
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2,patience=5, min_lr=0.0001)
     callbacks=[TFKerasPruningCallback(trial, "val_loss"),es,mc,reduce_lr]
     print(epochs,batch_size,'epochs')   
     
@@ -143,7 +143,7 @@ def create_model(trial,xtrain, ytrain):
         else:
             rs = False # final hidden 
 
-        Q=ytrain.shape[1]
+        Q=ytrain.shape[0]
         
         #print("checking shape", xtrain.shape[1:])
 
@@ -195,6 +195,16 @@ def show_result(study):
 #Reuse the best optuna model
 def create_model1(dict_para,xtrain,ytrain):
     
+    from tensorflow.keras.layers import Dense, Activation
+    from tensorflow.keras.utils import get_custom_objects
+
+    # Define the custom sinusoidal activation function
+    def sinusoidal(x):
+        return tf.math.sin(x)
+
+# Register the custom activation function
+    get_custom_objects().update({'sinusoidal': Activation(sinusoidal)})
+    
     n_layers = dict_para['n_layers']
     
     #from tensorflow.keras.models import Sequential
@@ -206,16 +216,21 @@ def create_model1(dict_para,xtrain,ytrain):
 
         num_hidden = dict_para['n_units_l'+str(i)] #dict_para['n_units_l0'] #trial.suggest_int("n_units_l{}".format(i), 20, 150, log=True)
         
-        print("num_hidden in layer ",i,"  ",num_hidden)
+        activation2=dict_para['activation2_'+str(i)]  
+                
+        print("num_hidden in layer ",i,"  ",num_hidden, activation2)
         
         if i < max(range(n_layers)):
             rs = True
         else:
             rs = False # final hidden 
 
-        Q=ytrain.shape[1]
+        Q=1 #ytrain.shape[0]
 
-        model.add(LSTM(num_hidden, input_shape=(xtrain.shape[1:]), return_sequences=rs))
+        if i==0: 
+            model.add(Dense(num_hidden, activation=activation2,input_shape=(xtrain.shape[1],))) #, return_sequences=rs for lstm.
+        else:
+            model.add(Dense(num_hidden, activation=activation2)) #, return_sequences=rs
 
         # model.add(Dropout(rate=dropout)) 
 
@@ -246,8 +261,17 @@ def create_model1(dict_para,xtrain,ytrain):
 
 def create_model_ANN(trial,xtrain, ytrain):
     # We optimize the numbers of layers, their units and weight decay parameter.
+    from tensorflow.keras.layers import Dense, Activation
+    from tensorflow.keras.utils import get_custom_objects
 
-    n_layers = trial.suggest_int("n_layers", 1, 3)
+    # Define the custom sinusoidal activation function
+    @tf.keras.utils.register_keras_serializable(package="my_package", name="sinusoidal")
+    def sinusoidal(x):
+        return tf.math.sin(x)
+
+# Register the custom activation function
+    get_custom_objects().update({'sinusoidal': sinusoidal})
+    n_layers = trial.suggest_int("n_layers", 2, 5)
     
     #weight_decay = trial.suggest_float("weight_decay",  2e-6, 1e-1, log=True)
     
@@ -261,18 +285,23 @@ def create_model_ANN(trial,xtrain, ytrain):
         
         dropout = 0. # trial.suggest_float("dropout_l{}".format(i), 0.0, 0.42)
 
-        num_hidden = trial.suggest_int("n_units_l{}".format(i), 5, 50, log=False)         
+        num_hidden = trial.suggest_int("n_units_l{}".format(i), 20, 30, log=False)    
+        
+        activation2 = trial.suggest_categorical('activation2_{}'.format(i), ['sinusoidal', 'relu']) #'relu', 'leaky_relu',     'tanh'
         
         if i < max(range(n_layers)):
             rs = True
         else:
             rs = False # final hidden 
 
-        Q=ytrain.shape[1]
+        Q=1 #ytrain.shape[0]
         
-        print("checking shape", xtrain.shape[1:]) #3x20| for lstm
-
-        model.add(Dense(num_hidden, input_shape=(xtrain.shape[1:]), return_sequences=rs))
+            
+        if i==0: 
+            model.add(Dense(num_hidden, activation=activation2,input_shape=(xtrain.shape[1],))) #, return_sequences=rs for lstm.
+        else:
+            model.add(Dense(num_hidden, activation=activation2)) #, return_sequences=rs
+            
 
         # model.add(Dropout(rate=dropout)) #Uncomment to include dropout 
 
